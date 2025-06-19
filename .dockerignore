@@ -24,3 +24,9 @@ venv/
 # Docker
 docker-compose*.yml
 Dockerfile
+
+# uv
+uv.lock
+
+# Nix
+shell.nix

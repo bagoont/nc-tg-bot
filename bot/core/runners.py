@@ -4,83 +4,68 @@ import asyncio
 
 from aiogram import Bot, Dispatcher, loggers
 from aiogram.enums import MenuButtonType
-from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
+from aiogram.types import MenuButtonWebApp, WebAppInfo
+from aiogram.utils.chat_action import ChatActionMiddleware
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiogram_dialog import setup_dialogs
 from aiogram_i18n import I18nMiddleware
-from aiogram_i18n.cores.fluent_runtime_core import FluentRuntimeCore
+from aiogram_i18n.cores.fluent_compile_core import FluentCompileCore
 from aiohttp.web import Application, AppRunner, TCPSite
 
-from bot.core.config import settings
-from bot.handlers import routers
-from bot.middlewares import LocaleManager, QueryMsgMD
+from bot import dialogs, handlers
+from bot.core import settings
+from bot.db import session_maker
+from bot.middlewares import DatabaseMD, LocaleManager
+from bot.utils import Commands
 
 
-async def _set_menu_button(bot: Bot) -> None:
-    if settings.nc.overwrite and settings.nc.overwrite.protocol == "https":
-        url = f"{settings.nc.overwrite.protocol}://{settings.nc.overwrite.host}:{settings.nc.overwrite.port}"
-    elif settings.nc.protocol == "https":
-        url = f"{settings.nc.protocol}://{settings.nc.host}:{settings.nc.port}"
-    else:
-        return
-
-    await bot.set_chat_menu_button(
-        menu_button=MenuButtonWebApp(
-            type=MenuButtonType.WEB_APP,
-            text="Nextcloud",
-            web_app=WebAppInfo(
-                url=url,
+async def set_menu_button(bot: Bot) -> None:
+    if settings.nc.BASEURL.startswith("https"):
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                type=MenuButtonType.WEB_APP,
+                text="Nextcloud",
+                web_app=WebAppInfo(
+                    url=settings.nc.BASEURL,
+                ),
             ),
-        ),
-    )
+        )
 
 
-async def _set_bot_menu(bot: Bot) -> None:
-    await _set_menu_button(bot)
-
-    commands = [
-        BotCommand(command="help", description="Get message with help text"),
-        BotCommand(command="auth", description="Start authentification in Nextcloud"),
-        BotCommand(command="logout", description="Logout from Nextcloud"),
-    ]
-
-    await bot.set_my_commands(commands)
+async def set_bot_menu(bot: Bot) -> None:
+    await set_menu_button(bot)
+    await bot.set_my_commands([command.value for command in Commands])
 
 
 async def on_startup(dispatcher: Dispatcher, bot: Bot) -> None:
-    """Initializes the bot by setting up handlers, middleware, and registering bot commands.
-
-    :param dispatcher: Aiogram dispatcher instance.
-    :param bot: Aiogram bot instance.
-    """
     loggers.dispatcher.info("Bot starting...")
 
-    await _set_bot_menu(bot)
-
-    for router in routers:
-        dispatcher.include_router(router())
-
+    dispatcher.update.outer_middleware(DatabaseMD(session_maker))
+    dispatcher.message.middleware(ChatActionMiddleware())
     i18n_middleware = I18nMiddleware(
-        core=FluentRuntimeCore(path="./bot/locales/{locale}/"),
+        core=FluentCompileCore(path="./bot/locales/{locale}/LC_MESSAGES"),
+        default_locale=settings.DEFAULT_LANGUAGE,
         manager=LocaleManager(),
     )
+
+    await set_bot_menu(bot)
+    setup_dialogs(dispatcher)
+
+    for router in handlers.routers:
+        dispatcher.include_router(router)
+    for router in dialogs.routers:
+        dispatcher.include_router(router)
     i18n_middleware.setup(dispatcher=dispatcher)
-    dispatcher.callback_query.middleware.register(QueryMsgMD())
 
     loggers.dispatcher.info("Bot started.")
 
 
 async def on_shutdown(dispatcher: Dispatcher, bot: Bot) -> None:
-    """Performs necessary cleanup when the bot is shutting down.
-
-    :param dispatcher: Aiogram dispatcher instance.
-    :param bot: Aiogram bot instance.
-    """
     loggers.dispatcher.info("Bot stopping...")
 
     await dispatcher.storage.close()
     await dispatcher.fsm.storage.close()
-
-    await bot.delete_webhook(drop_pending_updates=settings.tg.drop_pending_updates)
+    await bot.delete_webhook(drop_pending_updates=settings.TG_DROP_PENDING_UPDATES)
     await bot.session.close()
 
     loggers.dispatcher.info("Bot stopped.")
@@ -95,26 +80,15 @@ async def webhook_run(
     port: int,
     secret: str | None,
 ) -> None:
-    """Sets up and starts the webhook server for receiving updates via HTTP requests.
-
-    :param dispatcher: Aiogram dispatcher instance.
-    :param bot: Aiogram bot instance.
-    :param path: The path under which the webhook endpoint is accessible.
-    :param host: The hostname where the webhook should be hosted
-    :param port: The port number on which the webhook server listens.
-    :param secret: A secret token used for webhook verification, defaults to None.
-    """
     loggers.dispatcher.info("Register webhook.")
     url = f"{base_url}{path}"
 
     app = Application()
-
     await bot.set_webhook(
         url,
         allowed_updates=dp.resolve_used_update_types(),
         secret_token=secret,
     )
-
     webhook_requests_handler = SimpleRequestHandler(
         dispatcher=dp,
         bot=bot,

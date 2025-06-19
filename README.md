@@ -1,4 +1,2 @@
-# nc_tg_bot
+# nc-tg-bot
 🚧 *Work in progress* 🚧
-
-The project is being rewritten

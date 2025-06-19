@@ -1,0 +1,34 @@
+from typing import Any
+
+from aiogram import types
+from aiogram_dialog import DialogManager
+from aiogram_i18n import I18nContext
+from nc_py_api import AsyncNextcloud
+
+from bot.db import UserRepository
+from bot.dialogs.settings.states import Settings
+
+
+async def on_lang(callback: types.CallbackQuery, widget: Any, manager: DialogManager, item_id: str) -> None:
+    i18n: I18nContext = manager.middleware_data["i18n"]
+    await i18n.set_locale(item_id)
+    await callback.answer(text=f'Language set to "{item_id}".')
+    await manager.switch_to(Settings.MAIN)
+
+
+async def on_logout(callback: types.CallbackQuery, widget: Any, manager: DialogManager) -> None:
+    nc: AsyncNextcloud = manager.middleware_data.get("nc")
+    users: UserRepository = manager.middleware_data.get("users")
+
+    user = await users.get_by_tg_id(manager.event.from_user.id)
+    if user is None:
+        # TODO: Send error message.
+        return
+
+    await users.delete(user)
+    await nc.ocs("DELETE", "/ocs/v2.php/core/apppassword")
+    await users.session.commit()
+
+    await callback.answer(text="Logout complete.")
+
+    await manager.done()

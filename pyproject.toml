@@ -1,103 +1,31 @@
-[build-system]
-build-backend = "poetry.core.masonry.api"
-requires = [
-  "poetry-core",
-]
-
-[tool.poetry]
-package-mode = false
+[project]
 name = "nc-tg-bot"
 version = "0.1.0"
-description = "🤖 Telegram bot for interacting with Nextcloud via Telegram."
-authors = [
-  "blvd <blvd@bagoont.ru>",
-]
-license = "MIT"
+description = "Add your description here"
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.12"
-aiogram = "^3.8.0"
-redis = "^5.0.7"
-sqlalchemy = "^2.0.31"
-pydantic-settings = "^2.3.4"
-alembic = "^1.13.2"
-asyncpg = "^0.30.0"
-uvloop = "^0.21.0"
-aiogram-i18n = "^1.4"
-fluent-runtime = "^0.4.0"
-nc-py-api = { git = "https://github.com/cloud-py-api/nc_py_api.git" }
-
-[tool.poetry.group.dev.dependencies]
-mypy = "^1.10.1"
-pre-commit = "^4.0.0"
-ruff = "^0.7.0"
-
-[tool.ruff]
-target-version = "py312"
-line-length = 99
-extend-exclude = [
-  "logs",
-  "migrations",
-]
-lint.select = [
-  "ALL",
-]
-lint.ignore = [
-  "ANN101",
-  "ANN102",
-  "ANN401",
-  "D105",
-  "D107",
-  "D203",
-  "D213",
-  "D401",
-  "RUF100",
-  "TD003",
-]
-lint.extend-per-file-ignores."tests/*.py" = [
-  "ANN401",
-  "S101",
-  "S311",
-]
-lint.isort.known-local-folder = [
-  "bot",
-]
-lint.isort.no-lines-before = [
-  "future",
-  "standard-library",
-]
-lint.pylint.max-args = 7
-
-[tool.mypy]
-python_version = "3.12"
-show_error_codes = true
-show_error_context = true
-pretty = true
-ignore_missing_imports = false
-warn_unused_configs = true
-disallow_subclassing_any = true
-disallow_any_generics = true
-disallow_untyped_calls = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_return_any = true
-follow_imports_for_stubs = true
-namespace_packages = true
-show_absolute_path = true
-plugins = [
-  "pydantic.mypy",
-  "sqlalchemy.ext.mypy.plugin",
+requires-python = ">=3.13"
+dependencies = [
+    "aiogram>=3.20.0.post0",
+    "aiogram-dialog>=2.3.1",
+    "aiogram-i18n>=1.4",
+    "aiosqlite>=0.21.0",
+    "alembic>=1.16.2",
+    "asyncpg>=0.30.0",
+    "fluent-compiler>=1.1",
+    "nc-py-api>=0.20.2",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.9.1",
+    "redis>=6.2.0",
+    "sqlalchemy>=2.0.41",
+    "tenacity>=9.1.2",
+    "uvloop>=0.21.0",
 ]
 
-[[tool.mypy.overrides]]
-module = [
-  "asyncpg.*",
-  "nc_py_api.*",
+[dependency-groups]
+dev = [
+    "bandit>=1.8.3",
+    "basedpyright>=1.29.4",
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.0",
+    "ruff>=0.11.13",
 ]
-ignore_missing_imports = true

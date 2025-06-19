@@ -1,13 +1,5 @@
-"""Middlewares."""
+from bot.middlewares.db import DatabaseMD
+from bot.middlewares.locale import LocaleManager
+from bot.middlewares.nc import NextcloudMD
 
-from .i18n import LocaleManager
-from .nextcloud_md import NextcloudMD
-from .query_msg_md import QueryMsgMD
-from .unitofwork_md import UnitOfWorkMD
-
-__all__ = (
-    "UnitOfWorkMD",
-    "NextcloudMD",
-    "LocaleManager",
-    "QueryMsgMD",
-)
+__all__ = ("DatabaseMD", "NextcloudMD", "LocaleManager")

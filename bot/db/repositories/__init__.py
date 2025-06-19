@@ -1,10 +1,7 @@
-"""Repository interfaces and implementations."""
-
-from ._abstract import _AbstractRepository, _Repository
-from ._user import _UserRepository
+from bot.db.repositories.base import Repository
+from bot.db.repositories.users import UserRepository
 
 __all__ = (
-    "_AbstractRepository",
-    "_Repository",
-    "_UserRepository",
+    "Repository",
+    "UserRepository",
 )
